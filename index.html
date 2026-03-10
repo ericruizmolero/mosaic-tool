@@ -400,6 +400,26 @@
     }
     .snippet-box:focus { border-color: rgba(249,249,241,0.6); color: var(--text); }
 
+    /* ─── Upload button ───────────────────────────────────────────────────── */
+    .upload-btn {
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 3px 7px;
+      border: 1px solid var(--border);
+      font-family: monospace;
+      transition: color 0.12s, border-color 0.12s;
+      white-space: nowrap;
+    }
+    .upload-btn:hover { color: var(--text); border-color: rgba(249,249,241,0.5); }
+    .upload-btn input[type="file"] { display: none; }
+    textarea.drag-over {
+      border-color: rgba(249,249,241,0.6);
+      background: #0e3f5a;
+    }
+
     /* ─── Demo button ─────────────────────────────────────────────────────── */
     .demo-link {
       font-size: 10px;
@@ -460,9 +480,15 @@
   <div class="left">
 
     <div class="field">
-      <div class="label">SVG Input</div>
+      <div class="label" style="display:flex;align-items:center;justify-content:space-between;">
+        SVG Input
+        <label class="upload-btn" id="uploadLabel">
+          ↑ Upload .svg
+          <input type="file" id="svgFileInput" accept=".svg,image/svg+xml">
+        </label>
+      </div>
       <textarea id="svgInput" spellcheck="false"
-        placeholder="Paste SVG code here…&#10;&#10;Logos, icons, text-as-paths — anything with filled shapes works."></textarea>
+        placeholder="Paste SVG code here…&#10;&#10;Or drag & drop an .svg file."></textarea>
       <button class="demo-link" id="loadDemo">↳ Load treseiscero logo as demo</button>
     </div>
 
@@ -1381,6 +1407,34 @@ previewWrap.addEventListener("mouseleave", () => {
 document.getElementById("loadDemo").addEventListener("click", () => {
   svgInput.value = DEMO_SVG;
   flash("treseiscero logo loaded. Click Generate!");
+});
+
+// ─── SVG file loader (shared by file input + drag & drop) ────────────────────
+function loadSVGFile(file) {
+  if (!file || !file.name.endsWith(".svg")) { flash("Please drop an .svg file.", "warn"); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    svgInput.value = e.target.result.trim();
+    flash(`"${file.name}" loaded. Click Generate!`);
+  };
+  reader.onerror = () => flash("Error reading file.", "error");
+  reader.readAsText(file);
+}
+
+// File input (click ↑ Upload .svg)
+document.getElementById("svgFileInput").addEventListener("change", e => {
+  if (e.target.files[0]) loadSVGFile(e.target.files[0]);
+  e.target.value = ""; // reset so same file can be re-selected
+});
+
+// Drag & drop onto textarea
+svgInput.addEventListener("dragover",  e => { e.preventDefault(); svgInput.classList.add("drag-over"); });
+svgInput.addEventListener("dragleave", () => svgInput.classList.remove("drag-over"));
+svgInput.addEventListener("drop", e => {
+  e.preventDefault();
+  svgInput.classList.remove("drag-over");
+  const file = e.dataTransfer.files[0];
+  if (file) loadSVGFile(file);
 });
 
 // ─── Auto-regenerate on control change (only when preview exists) ────────────
