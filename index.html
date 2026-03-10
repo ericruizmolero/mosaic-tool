@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mosaic Tile — treseiscero tools</title>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+  <style>
+    :root {
+      --bg: #022D42;
+      --surface: #0b3b55;
+      --border: #1a5472;
+      --text: #F9F9F1;
+      --muted: rgba(249,249,241,0.45);
+      --green: #6ee7b7;
+      --red: #f87171;
+      --yellow: #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', ui-monospace, monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-size: 13px;
+    }
+
+    /* ─── Header ──────────────────────────────────────────────────────────── */
+    header {
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 12px; letter-spacing: 0.12em; display: flex; align-items: baseline; gap: 8px; }
+    header h1 .by { font-size: 9px; letter-spacing: 0.18em; color: var(--muted); font-weight: 400; }
+    header .sub { color: var(--muted); font-size: 11px; }
+
+    /* ─── Layout ──────────────────────────────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ─── Left Panel ──────────────────────────────────────────────────────── */
+    .left {
+      border-right: 1px solid var(--border);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      overflow-y: auto;
+    }
+
+    /* ─── Right Panel ─────────────────────────────────────────────────────── */
+    .right {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow: hidden;
+    }
+
+    /* ─── Form elements ───────────────────────────────────────────────────── */
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .label {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    textarea {
+      width: 100%;
+      height: 160px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: monospace;
+      font-size: 10.5px;
+      padding: 10px;
+      resize: vertical;
+      outline: none;
+      line-height: 1.45;
+      transition: border-color 0.12s;
+    }
+    textarea:focus { border-color: rgba(249,249,241,0.6); }
+    input[type="range"] {
+      flex: 1;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      height: 16px;
+      display: flex;
+      align-items: center;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 1px;
+      background: var(--border);
+      border-radius: 0;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text);
+      margin-top: -3.5px;
+      transition: transform 0.1s;
+    }
+    input[type="range"]:hover::-webkit-slider-thumb {
+      transform: scale(1.4);
+    }
+    input[type="range"]::-moz-range-track {
+      height: 1px;
+      background: var(--border);
+      border-radius: 0;
+    }
+    input[type="range"]::-moz-range-thumb {
+      border: none;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text);
+    }
+    input[type="number"],
+    input[type="text"] {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 8px;
+      font-family: monospace;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.12s;
+    }
+    input[type="number"]:focus,
+    input[type="text"]:focus { border-color: rgba(249,249,241,0.6); }
+    input[type="color"] {
+      width: 32px;
+      height: 30px;
+      padding: 2px 3px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      outline: none;
+    }
+    .row { display: flex; align-items: center; gap: 8px; }
+    .count-val {
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 28px;
+      text-align: right;
+    }
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .check-row input[type="checkbox"] { accent-color: var(--text); cursor: pointer; }
+    hr { border: none; border-top: 1px solid var(--border); }
+
+    /* ─── Buttons ─────────────────────────────────────────────────────────── */
+    .btn {
+      padding: 9px 16px;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      font-family: monospace;
+      transition: background 0.12s, border-color 0.12s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--surface); border-color: rgba(249,249,241,0.5); }
+    .btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+    .btn.primary {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+    }
+    .btn.primary:hover { background: rgba(249,249,241,0.88); }
+    .btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* ─── Preview ─────────────────────────────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .bg-group { display: flex; align-items: center; gap: 6px; }
+    .bg-label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+    .bg-btn {
+      padding: 4px 9px;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: monospace;
+      transition: color 0.12s, border-color 0.12s;
+    }
+    .bg-btn.active { border-color: rgba(249,249,241,0.5); color: var(--text); }
+    .bg-btn:hover { color: var(--text); }
+
+    .preview-wrap {
+      flex: 1;
+      background: #022D42;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      min-height: 200px;
+    }
+    .preview-wrap svg {
+      max-width: 92%;
+      max-height: 92%;
+      transform-origin: center center;
+      transition: transform 0.08s ease-out;
+    }
+    .zoom-controls {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      display: flex;
+      align-items: center;
+      gap: 1px;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .preview-wrap:hover .zoom-controls { opacity: 1; }
+    .zoom-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      padding: 0;
+    }
+    .zoom-btn:hover { background: var(--border); }
+    .zoom-label {
+      font-size: 9px;
+      color: var(--muted);
+      min-width: 34px;
+      text-align: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: default;
+      letter-spacing: 0.04em;
+    }
+    .placeholder {
+      text-align: center;
+      color: var(--muted);
+      line-height: 2;
+      pointer-events: none;
+    }
+    .placeholder small { font-size: 10px; display: block; margin-top: 4px; }
+
+    /* ─── Footer strip ────────────────────────────────────────────────────── */
+    .meta { font-size: 10px; color: var(--muted); flex-shrink: 0; min-height: 14px; }
+    .feedback { font-size: 11px; min-height: 16px; }
+
+    /* ─── Select ──────────────────────────────────────────────────────────── */
+    select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 5px 8px;
+      font-family: monospace;
+      font-size: 11px;
+      outline: none;
+      cursor: pointer;
+      flex: 1;
+    }
+    select:focus { border-color: rgba(249,249,241,0.6); }
+
+    /* ─── Geometry buttons ────────────────────────────────────────────────── */
+    .geo-group { display: flex; gap: 4px; }
+    .geo-btn {
+      padding: 5px 11px;
+      font-size: 10px;
+      font-family: monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.12s, border-color 0.12s;
+    }
+    .geo-btn.active { border-color: rgba(249,249,241,0.5); color: var(--text); }
+    .geo-btn:hover { color: var(--text); }
+
+    /* ─── Anim section ────────────────────────────────────────────────────── */
+    .anim-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+    .anim-toolbar { display: flex; align-items: center; gap: 6px; }
+    .anim-hint { font-size: 10px; color: var(--muted); margin-left: 6px; }
+    .anim-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 14px;
+    }
+    .hover-params {
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 14px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .hover-params.visible { display: grid; }
+    .anim-param {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      row-gap: 4px;
+    }
+    .anim-label {
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      grid-column: 1;
+      align-self: end;
+    }
+    .anim-val {
+      font-size: 9px;
+      color: var(--text);
+      text-align: right;
+      grid-column: 2;
+      grid-row: 1;
+      align-self: end;
+    }
+    .anim-param input[type="range"],
+    .anim-param select { grid-column: 1 / -1; }
+    .btn-play {
+      background: var(--green);
+      color: var(--bg);
+      border-color: var(--green);
+    }
+    .btn-play:hover { opacity: 0.88; }
+
+    /* ─── Snippet textarea ────────────────────────────────────────────────── */
+    .snippet-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 12px;
+      font-family: monospace;
+      font-size: 10.5px;
+      color: var(--muted);
+      line-height: 1.65;
+      height: 96px;
+      resize: none;
+      outline: none;
+      width: 100%;
+    }
+    .snippet-box:focus { border-color: rgba(249,249,241,0.6); color: var(--text); }
+
+    /* ─── Demo button ─────────────────────────────────────────────────────── */
+    .demo-link {
+      font-size: 10px;
+      color: var(--muted);
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-color: transparent;
+      transition: color 0.12s, text-decoration-color 0.12s;
+      border: none;
+      background: none;
+      font-family: monospace;
+      padding: 0;
+    }
+    .demo-link:hover { color: var(--text); text-decoration-color: var(--text); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Mosaic Tile <span class="by">by treseiscero</span></h1>
+  <span class="sub">/ Voronoi tessellation → GSAP fragments</span>
+</header>
+
+<div class="layout">
+
+  <!-- ══════════════════════════════ LEFT PANEL ══════════════════════════════ -->
+  <div class="left">
+
+    <div class="field">
+      <div class="label">SVG Input</div>
+      <textarea id="svgInput" spellcheck="false"
+        placeholder="Paste SVG code here…&#10;&#10;Logos, icons, text-as-paths — anything with filled shapes works."></textarea>
+      <button class="demo-link" id="loadDemo">↳ Load treseiscero logo as demo</button>
+    </div>
+
+    <div class="field">
+      <div class="label">Fragments</div>
+      <div class="row">
+        <input type="range" id="countSlider" min="10" max="200" value="40">
+        <span class="count-val" id="countDisplay">40</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label">Fill Color</div>
+      <div class="row">
+        <input type="color" id="fillColor" value="#F9F9F1">
+        <input type="text" id="fillHex" value="#F9F9F1" style="width:86px" maxlength="7">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label">Gap / Grout</div>
+      <div class="row">
+        <input type="number" id="gapSize" value="0.2" min="0" max="4" step="0.1" style="width:66px">
+        <input type="color" id="gapColor" value="#022D42">
+        <input type="text" id="gapHex" value="#022D42" style="width:86px" maxlength="7">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label">Geometry</div>
+      <div class="geo-group">
+        <button class="geo-btn active" data-geo="voronoi">Voronoi</button>
+        <button class="geo-btn" data-geo="grid">Grid</button>
+        <button class="geo-btn" data-geo="triangles">Triangles</button>
+      </div>
+    </div>
+
+    <label class="check-row" id="poissonRow" for="poissonCheck">
+      <input type="checkbox" id="poissonCheck">
+      Poisson-disk sampling
+      <span style="opacity:0.5">(more even)</span>
+    </label>
+
+    <hr>
+
+    <div class="btn-group">
+      <button class="btn primary" id="generateBtn">Generate</button>
+      <button class="btn" id="randomizeBtn">Randomize ↺</button>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+  </div>
+
+  <!-- ══════════════════════════════ RIGHT PANEL ═════════════════════════════ -->
+  <div class="right">
+
+    <div class="toolbar">
+      <div class="bg-group">
+        <span class="bg-label">Preview bg</span>
+        <button class="bg-btn active" id="bgNavy"  onclick="setBg('navy' )">Navy</button>
+        <button class="bg-btn"        id="bgWhite" onclick="setBg('white')">White</button>
+        <button class="bg-btn"        id="bgBlack" onclick="setBg('black')">Black</button>
+        <button class="bg-btn"        id="bgCheck" onclick="setBg('check')">Check</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn" id="exportBtn">↓ Export SVG</button>
+        <button class="btn" id="copyBtn">Copy SVG</button>
+        <button class="btn active" id="snippetLoadBtn">GSAP Load</button>
+        <button class="btn" id="snippetScrollBtn">GSAP Scroll</button>
+        <button class="btn" id="snippetHoverBtn">GSAP Hover</button>
+      </div>
+    </div>
+
+    <div class="preview-wrap" id="previewWrap">
+      <div class="placeholder">
+        Paste an SVG and click Generate
+        <small>Each Voronoi cell → independent &lt;path class="mosaic-fragment"&gt;</small>
+      </div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" id="zoomOut">−</button>
+        <span class="zoom-label" id="zoomLabel">100%</span>
+        <button class="zoom-btn" id="zoomIn">+</button>
+        <button class="zoom-btn" id="zoomReset" title="Reset zoom">⌂</button>
+      </div>
+    </div>
+
+    <div class="meta" id="metaLine"></div>
+
+    <div class="field">
+      <div class="label">GSAP Snippet</div>
+      <textarea class="snippet-box" id="snippetBox" spellcheck="false">// Generate a mosaic to see the GSAP animation snippet</textarea>
+    </div>
+
+    <div class="anim-section">
+      <div class="anim-toolbar">
+        <button class="btn btn-play" id="playBtn">▶ Play</button>
+        <button class="btn" id="resetBtn">↺ Reset</button>
+        <button class="btn" id="hoverBtn">⊙ Hover</button>
+        <span class="anim-hint">params update snippet live</span>
+      </div>
+      <div class="anim-grid">
+        <div class="anim-param">
+          <span class="anim-label">Duration</span>
+          <input type="range" id="animDuration" min="0.1" max="3" step="0.01" value="0.9">
+          <span class="anim-val" id="durVal">0.9s</span>
+        </div>
+        <div class="anim-param">
+          <span class="anim-label">Stagger</span>
+          <input type="range" id="animStagger" min="0" max="0.1" step="0.001" value="0.016">
+          <span class="anim-val" id="stagVal">0.016</span>
+        </div>
+        <div class="anim-param">
+          <span class="anim-label">From</span>
+          <select id="animFrom">
+            <option value="random" selected>random</option>
+            <option value="start">start</option>
+            <option value="end">end</option>
+            <option value="center">center</option>
+            <option value="edges">edges</option>
+          </select>
+        </div>
+        <div class="anim-param">
+          <span class="anim-label">Direction</span>
+          <select id="animDir">
+            <option value="random" selected>random ±</option>
+            <option value="left">← from left</option>
+            <option value="right">→ from right</option>
+            <option value="top">↑ from top</option>
+            <option value="bottom">↓ from bottom</option>
+          </select>
+        </div>
+        <div class="anim-param">
+          <span class="anim-label" id="xyLabel">X / Y</span>
+          <input type="range" id="animXY" min="0" max="800" step="1" value="50">
+          <span class="anim-val" id="xyVal">±50</span>
+        </div>
+        <div class="anim-param">
+          <span class="anim-label">Rotation</span>
+          <input type="range" id="animRot" min="0" max="180" step="1" value="60">
+          <span class="anim-val" id="rotVal">±60°</span>
+        </div>
+        <div class="anim-param" style="grid-column: 1 / -1">
+          <span class="anim-label">Ease</span>
+          <select id="animEase">
+            <option value="power3.out" selected>power3.out</option>
+            <option value="power2.out">power2.out</option>
+            <option value="expo.out">expo.out</option>
+            <option value="back.out(1.7)">back.out</option>
+            <option value="elastic.out(1,0.3)">elastic.out</option>
+            <option value="circ.out">circ.out</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="hover-params" id="hoverParams">
+        <div class="anim-param">
+          <span class="anim-label">Radius</span>
+          <input type="range" id="hoverRadius" min="20" max="200" step="1" value="80">
+          <span class="anim-val" id="hoverRadiusVal">80px</span>
+        </div>
+        <div class="anim-param">
+          <span class="anim-label">Force</span>
+          <input type="range" id="hoverForce" min="1" max="100" step="1" value="24">
+          <span class="anim-val" id="hoverForceVal">24px</span>
+        </div>
+        <div class="anim-param">
+          <span class="anim-label">Push ease</span>
+          <select id="hoverPushEase">
+            <option value="power1.out">power1.out</option>
+            <option value="power2.out" selected>power2.out</option>
+            <option value="power3.out">power3.out</option>
+            <option value="expo.out">expo.out</option>
+            <option value="circ.out">circ.out</option>
+          </select>
+        </div>
+        <div class="anim-param">
+          <span class="anim-label">Return ease</span>
+          <select id="hoverReturnEase">
+            <option value="elastic.out(1,0.5)" selected>elastic.out</option>
+            <option value="elastic.out(1,0.3)">elastic.soft</option>
+            <option value="back.out(1.7)">back.out</option>
+            <option value="power3.out">power3.out</option>
+            <option value="bounce.out">bounce.out</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { Delaunay } from "https://cdn.jsdelivr.net/npm/d3-delaunay@6/+esm";
+
+// ─── Demo SVG (treseiscero logo) ────────────────────────────────────────────
+const DEMO_SVG = `<svg width="160" height="24" viewBox="0 0 160 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g style="mix-blend-mode:color-dodge">
+<path d="M142.729 14.4823C142.729 9.02323 146.228 5.42023 151.364 5.42023C156.499 5.42023 159.999 9.02323 159.999 14.4823C159.999 19.9414 156.492 23.5522 151.364 23.5522C146.228 23.5522 142.729 19.9414 142.729 14.4823ZM146.692 14.4823C146.692 17.9918 148.454 20.0896 151.372 20.0896C154.282 20.0896 156.035 17.9996 156.035 14.4823C156.035 10.9651 154.282 8.88286 151.372 8.88286C148.454 8.88286 146.692 10.9729 146.692 14.4823Z" fill="white"/>
+<path d="M135.589 14.8958V23.0845H131.641V5.88831H135.589V11.6204C136.304 8.06415 138.318 5.88831 141.849 5.88831H142.761V9.5927H141.456C136.989 9.5927 135.589 11.2928 135.589 14.8958Z" fill="white"/>
+<path d="M126.811 17.3211H130.617C129.697 21.2048 126.614 23.5522 122.477 23.5522C117.31 23.5522 113.834 19.8946 113.834 14.4667C113.834 9.05443 117.271 5.42023 122.383 5.42023C127.424 5.42023 130.696 8.96084 130.696 14.4277C130.696 14.8333 130.68 15.231 130.633 15.6755H117.735C118.065 18.5377 119.85 20.2534 122.579 20.2534C124.648 20.2534 126.04 19.2629 126.811 17.3211ZM117.79 12.868H126.787C126.37 10.1462 124.852 8.68789 122.399 8.68789C119.882 8.68789 118.222 10.232 117.79 12.868Z" fill="white"/>
+<path d="M87.8078 5.42017C92.7232 5.42017 95.5387 7.6584 95.5387 11.2458H91.6615C91.6615 9.56908 90.3245 8.49286 87.855 8.49286C85.6608 8.49286 84.1508 9.34292 84.1508 10.6141C84.1508 12.1037 86.109 12.4156 88.0359 12.7276L89.192 12.9147C92.039 13.3749 96.1207 14.0377 96.1207 18.1789C96.1207 21.6025 93.3052 23.5522 88.1538 23.5522C82.7587 23.5522 79.9668 21.4153 79.9668 17.5862H83.844C83.844 19.4423 85.2204 20.4639 88.1303 20.4639C90.7177 20.4639 92.2513 19.6606 92.2513 18.2491C92.2513 16.5801 90.2458 16.2214 88.0123 15.8392L86.8483 15.6443C84.2609 15.192 80.2814 14.5291 80.2814 10.6921C80.2814 7.45563 83.1205 5.42017 87.8078 5.42017Z" fill="white"/>
+<path d="M100.433 14.4823C100.433 17.9918 102.194 20.0896 105.112 20.0896C107.621 20.0896 108.942 18.5143 109.335 16.4476H113.275C112.748 20.5263 109.752 23.5522 105.104 23.5522C99.9764 23.5522 96.4688 19.9414 96.4688 14.4823C96.4688 9.02323 99.9685 5.42023 105.104 5.42023C109.752 5.42023 112.748 8.43833 113.275 12.5249H109.335C108.95 10.4582 107.629 8.88286 105.112 8.88286C102.194 8.88286 100.433 10.9729 100.433 14.4823Z" fill="white"/>
+<path d="M79.2731 0V3.99294H75.1992V0H79.2731ZM79.2102 5.88803V23.0842H75.2621V5.88803H79.2102Z" fill="white"/>
+<path d="M70.4336 17.3211H74.2401C73.3199 21.2048 70.237 23.5522 66.1002 23.5522C60.9332 23.5522 57.457 19.8946 57.457 14.4667C57.457 9.05443 60.8939 5.42023 66.0059 5.42023C71.0471 5.42023 74.3187 8.96084 74.3187 14.4277C74.3187 14.8333 74.303 15.231 74.2558 15.6755H61.3579C61.6882 18.5377 63.4734 20.2534 66.2025 20.2534C68.2709 20.2534 69.6629 19.2629 70.4336 17.3211ZM61.4129 12.868H70.41C69.9932 10.1462 68.4753 8.68789 66.0216 8.68789C63.5049 8.68789 61.8455 10.232 61.4129 12.868Z" fill="white"/>
+<path d="M48.7961 5.42017C53.7115 5.42017 56.527 7.6584 56.527 11.2458H52.6497C52.6497 9.56908 51.3128 8.49286 48.8433 8.49286C46.649 8.49286 45.139 9.34292 45.139 10.6141C45.139 12.1037 47.0973 12.4156 49.0242 12.7276L50.1803 12.9147C53.0272 13.3749 57.109 14.0377 57.109 18.1789C57.109 21.6025 54.2934 23.5522 49.1421 23.5522C43.747 23.5522 40.9551 21.4153 40.9551 17.5862H44.8323C44.8323 19.4423 46.2086 20.4639 49.1185 20.4639C51.706 20.4639 53.2396 19.6606 53.2396 18.2491C53.2396 16.5801 51.2341 16.2214 49.0006 15.8392L47.8366 15.6443C45.2491 15.192 41.2697 14.5291 41.2697 10.6921C41.2697 7.45563 44.1088 5.42017 48.7961 5.42017Z" fill="white"/>
+<path d="M36.6856 17.3211H40.492C39.5719 21.2048 36.489 23.5522 32.3522 23.5522C27.1851 23.5522 23.709 19.8946 23.709 14.4667C23.709 9.05443 27.1458 5.42023 32.2578 5.42023C37.299 5.42023 40.5707 8.96084 40.5707 14.4277C40.5707 14.8333 40.555 15.231 40.5078 15.6755H27.6098C27.9401 18.5377 29.7254 20.2534 32.4544 20.2534C34.5228 20.2534 35.9148 19.2629 36.6856 17.3211ZM27.6649 12.868H36.662C36.2452 10.1462 34.7273 8.68789 32.2735 8.68789C29.7569 8.68789 28.0974 10.232 27.6649 12.868Z" fill="white"/>
+<path d="M16.5672 14.8958V23.0845H12.6191V5.88831H16.5672V11.6204C17.2828 8.06415 19.2962 5.88831 22.8274 5.88831H23.7397V9.5927H22.4342C17.9671 9.5927 16.5672 11.2928 16.5672 14.8958Z" fill="white"/>
+<path d="M11.5767 22.9518C10.1689 23.3495 8.92632 23.5445 7.841 23.5445C4.1997 23.5445 2.265 21.3686 2.265 17.1573V9.07008H0V5.8882H2.265V1.92645H6.21303V5.8882H11.5767V9.07008H6.21303V17.1651C6.21303 19.2942 6.9759 20.2612 8.70611 20.2612C9.39033 20.2612 10.3184 20.1131 11.5767 19.7855V22.9518Z" fill="white"/>
+</g>
+</svg>`;
+
+// ─── State ──────────────────────────────────────────────────────────────────
+let seed     = Math.random();
+let lastSVG  = "";
+let lastFragCount = 0;
+let geometry = "voronoi";
+
+// ─── DOM refs ───────────────────────────────────────────────────────────────
+const svgInput    = document.getElementById("svgInput");
+const countSlider = document.getElementById("countSlider");
+const countDisp   = document.getElementById("countDisplay");
+const fillColor   = document.getElementById("fillColor");
+const fillHex     = document.getElementById("fillHex");
+const gapSize     = document.getElementById("gapSize");
+const gapColor    = document.getElementById("gapColor");
+const gapHex      = document.getElementById("gapHex");
+const poissonCk   = document.getElementById("poissonCheck");
+const poissonRow  = document.getElementById("poissonRow");
+const previewWrap = document.getElementById("previewWrap");
+const metaLine    = document.getElementById("metaLine");
+const snippetBox  = document.getElementById("snippetBox");
+const feedback    = document.getElementById("feedback");
+
+// ─── GSAP (loaded as global) ─────────────────────────────────────────────────
+const gsap = window.gsap;
+
+// ─── Anim param refs ─────────────────────────────────────────────────────────
+const animDuration = document.getElementById("animDuration");
+const animStagger  = document.getElementById("animStagger");
+const animFrom     = document.getElementById("animFrom");
+const animEase     = document.getElementById("animEase");
+const animXY       = document.getElementById("animXY");
+const animRot      = document.getElementById("animRot");
+const durVal       = document.getElementById("durVal");
+const stagVal      = document.getElementById("stagVal");
+const xyVal        = document.getElementById("xyVal");
+const rotVal       = document.getElementById("rotVal");
+const animDir      = document.getElementById("animDir");
+const xyLabel      = document.getElementById("xyLabel");
+
+// ─── Color sync ─────────────────────────────────────────────────────────────
+fillColor.addEventListener("input", () => { fillHex.value = fillColor.value; });
+fillHex.addEventListener("input", () => {
+  if (/^#[0-9a-fA-F]{6}$/.test(fillHex.value)) fillColor.value = fillHex.value;
+});
+gapColor.addEventListener("input", () => { gapHex.value = gapColor.value; });
+gapHex.addEventListener("input", () => {
+  if (/^#[0-9a-fA-F]{6}$/.test(gapHex.value)) gapColor.value = gapHex.value;
+});
+countSlider.addEventListener("input", () => { countDisp.textContent = countSlider.value; });
+
+// ─── Preview background ──────────────────────────────────────────────────────
+window.setBg = function(mode) {
+  const map = { navy: "#022D42", white: "#ffffff", black: "#000000" };
+  ["bgNavy","bgWhite","bgBlack","bgCheck"].forEach(id =>
+    document.getElementById(id).classList.remove("active")
+  );
+  if (mode === "check") {
+    document.getElementById("bgCheck").classList.add("active");
+    previewWrap.style.background =
+      "repeating-conic-gradient(#1a3a4a 0% 25%, #0f2a38 0% 50%) 0 0 / 16px 16px";
+  } else {
+    document.getElementById(`bg${mode[0].toUpperCase()}${mode.slice(1)}`).classList.add("active");
+    previewWrap.style.background = map[mode];
+  }
+};
+
+// ─── Seeded PRNG (mulberry32) ────────────────────────────────────────────────
+function prng(s) {
+  let t = (s * 2654435761) | 0;
+  return () => {
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ─── Poisson-disk sampling (Bridson) ────────────────────────────────────────
+function poissonDisk(w, h, n, rand) {
+  const r     = Math.sqrt((w * h) / n) * 0.85;
+  const cell  = r / Math.SQRT2;
+  const cols  = Math.ceil(w / cell);
+  const rows  = Math.ceil(h / cell);
+  const grid  = new Array(cols * rows).fill(null);
+  const pts   = [];
+  const active = [];
+
+  const add = p => {
+    pts.push(p);
+    active.push(p);
+    grid[Math.floor(p[1] / cell) * cols + Math.floor(p[0] / cell)] = p;
+  };
+
+  const ok = p => {
+    const cx = Math.floor(p[0] / cell);
+    const cy = Math.floor(p[1] / cell);
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const nx = cx + dx, ny = cy + dy;
+        if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+        const g = grid[ny * cols + nx];
+        if (!g) continue;
+        if ((p[0]-g[0])**2 + (p[1]-g[1])**2 < r*r) return false;
+      }
+    }
+    return true;
+  };
+
+  add([rand() * w, rand() * h]);
+
+  while (active.length && pts.length < n * 4) {
+    const i    = Math.floor(rand() * active.length);
+    const base = active[i];
+    let found  = false;
+    for (let k = 0; k < 25; k++) {
+      const a = rand() * Math.PI * 2;
+      const d = r * (1 + rand());
+      const p = [base[0] + Math.cos(a) * d, base[1] + Math.sin(a) * d];
+      if (p[0] < 0 || p[0] >= w || p[1] < 0 || p[1] >= h) continue;
+      if (ok(p)) { add(p); found = true; break; }
+    }
+    if (!found) active.splice(i, 1);
+  }
+
+  // pad with random if Poisson stalls before reaching N
+  while (pts.length < n) pts.push([rand() * w, rand() * h]);
+  return pts.slice(0, n);
+}
+
+// ─── Parse SVG ───────────────────────────────────────────────────────────────
+function parseSVG(raw) {
+  const doc   = new DOMParser().parseFromString(raw, "image/svg+xml");
+  const err   = doc.querySelector("parsererror");
+  if (err) throw new Error("Invalid SVG: " + err.textContent.split("\n")[0]);
+  const svgEl = doc.querySelector("svg");
+  if (!svgEl) throw new Error("No <svg> element found");
+
+  let vb = svgEl.getAttribute("viewBox");
+  let vw, vh;
+  if (vb) {
+    const p = vb.trim().split(/[\s,]+/).map(Number);
+    vw = p[2]; vh = p[3];
+  } else {
+    vw = parseFloat(svgEl.getAttribute("width")  || "100");
+    vh = parseFloat(svgEl.getAttribute("height") || "100");
+    vb = `0 0 ${vw} ${vh}`;
+  }
+
+  // Remember original canvas size to detect background rects
+  const origVw = vw, origVh = vh;
+
+  // Auto-detect crop bounds from export metadata:
+  // 1. <defs><clipPath><rect transform="translate(ox oy)"> — Figma clipPath style
+  // 2. <mask x y width height> — Figma/Sketch mask style
+  let ox = 0, oy = 0, cropFound = false;
+  for (const r of svgEl.querySelectorAll("defs clipPath rect")) {
+    const cw = parseFloat(r.getAttribute("width")  || "0");
+    const ch = parseFloat(r.getAttribute("height") || "0");
+    if (cw <= 0 || ch <= 0) continue;
+    const transform = r.getAttribute("transform") || "";
+    const tm = transform.match(/translate\(\s*([\d.-]+)[,\s]+([\d.-]+)\s*\)/);
+    const rx = parseFloat(r.getAttribute("x") || "0") + (tm ? parseFloat(tm[1]) : 0);
+    const ry = parseFloat(r.getAttribute("y") || "0") + (tm ? parseFloat(tm[2]) : 0);
+    if (cw < origVw * 0.95 || ch < origVh * 0.95) {
+      ox = rx; oy = ry; vw = cw; vh = ch;
+      vb = `${rx} ${ry} ${cw} ${ch}`;
+      cropFound = true; break;
+    }
+  }
+  if (!cropFound) {
+    for (const m of svgEl.querySelectorAll("mask[width][height]")) {
+      const mw = parseFloat(m.getAttribute("width")  || "0");
+      const mh = parseFloat(m.getAttribute("height") || "0");
+      const mx = parseFloat(m.getAttribute("x") || "0");
+      const my = parseFloat(m.getAttribute("y") || "0");
+      if (mw <= 0 || mh <= 0) continue;
+      if (mw < origVw * 0.95 || mh < origVh * 0.95) {
+        ox = mx; oy = my; vw = mw; vh = mh;
+        vb = `${mx} ${my} ${mw} ${mh}`;
+        break;
+      }
+    }
+  }
+
+  // Extract bare shape elements for clipPath:
+  // • Exclude anything inside <defs> or <mask> (clip/mask rects, luminance masks, etc.)
+  // • Exclude full-canvas background rects (fills ≥90% of original canvas from origin)
+  const clipDefs = Array.from(svgEl.querySelectorAll("path, rect, circle, ellipse, polygon, polyline"))
+    .filter(el => !el.closest("defs") && !el.closest("mask"))
+    .filter(el => {
+      if (el.tagName.toLowerCase() !== "rect") return true;
+      const w = parseFloat(el.getAttribute("width")  || "0");
+      const h = parseFloat(el.getAttribute("height") || "0");
+      const x = parseFloat(el.getAttribute("x") || "0");
+      const y = parseFloat(el.getAttribute("y") || "0");
+      return !(x <= 2 && y <= 2 && w >= origVw * 0.9 && h >= origVh * 0.9);
+    })
+    .map(el => {
+      const tag = el.tagName.toLowerCase();
+      if (tag === "path") return `<path d="${el.getAttribute("d")}"/>`;
+      // Copy geometry attrs for other shapes (no style/class)
+      const geomAttrs = ["cx","cy","r","rx","ry","x","y","width","height","points","x1","y1","x2","y2"];
+      const attrs = geomAttrs
+        .filter(a => el.hasAttribute(a))
+        .map(a => `${a}="${el.getAttribute(a)}"`)
+        .join(" ");
+      return `<${tag} ${attrs}/>`;
+    })
+    .filter(Boolean);
+
+  if (!clipDefs.length) throw new Error("No visible shapes found. Make sure the SVG has filled paths.");
+
+  return { vb, vw, vh, ox, oy, inner: svgEl.innerHTML.trim(), clipDefs };
+}
+
+// ─── Build mosaic SVG ────────────────────────────────────────────────────────
+// ─── Voronoi path builder ────────────────────────────────────────────────────
+function buildVoronoiPaths(parsed, n, fill, gap, gapCol, usePoisson, s) {
+  const { vw, vh, ox = 0, oy = 0 } = parsed;
+  const rand = prng(Math.round(s * 1e9));
+  const pts = usePoisson
+    ? poissonDisk(vw, vh, n, rand).map(([x, y]) => [x + ox, y + oy])
+    : Array.from({ length: n }, () => [ox + rand() * vw, oy + rand() * vh]);
+  const delaunay = Delaunay.from(pts);
+  const voronoi  = delaunay.voronoi([ox, oy, ox + vw, oy + vh]);
+  const strokeAttr = gap > 0
+    ? `stroke="${gapCol}" stroke-width="${gap}" stroke-linejoin="round"`
+    : `stroke="none"`;
+  let paths = "";
+  for (let i = 0; i < n; i++) {
+    const d = voronoi.renderCell(i);
+    if (!d) continue;
+    paths += `  <path class="mosaic-fragment" data-index="${i}" d="${d}" clip-path="url(#mosaic-clip)" fill="${fill}" ${strokeAttr}/>\n`;
+  }
+  return paths;
+}
+
+// ─── Grid path builder ───────────────────────────────────────────────────────
+function buildGridPaths(parsed, n, fill, gap, gapCol) {
+  const { vw, vh, ox = 0, oy = 0 } = parsed;
+  const cols = Math.max(1, Math.round(Math.sqrt(n * vw / vh)));
+  const rows = Math.max(1, Math.ceil(n / cols));
+  const cellW = vw / cols;
+  const cellH = vh / rows;
+  const g = gap / 2;
+  const strokeAttr = gap > 0
+    ? `stroke="${gapCol}" stroke-width="${gap}"`
+    : `stroke="${fill}" stroke-width="0.5"`;
+  let paths = "", idx = 0;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x1 = +(ox + c * cellW + g).toFixed(3),       y1 = +(oy + r * cellH + g).toFixed(3);
+      const x2 = +(ox + (c + 1) * cellW - g).toFixed(3), y2 = +(oy + (r + 1) * cellH - g).toFixed(3);
+      if (x2 <= x1 || y2 <= y1) continue;
+      paths += `  <path class="mosaic-fragment" data-index="${idx++}" d="M${x1},${y1} L${x2},${y1} L${x2},${y2} L${x1},${y2} Z" clip-path="url(#mosaic-clip)" fill="${fill}" ${strokeAttr}/>\n`;
+    }
+  }
+  return paths;
+}
+
+// ─── Triangle path builder ───────────────────────────────────────────────────
+function buildTrianglePaths(parsed, n, fill, gap, gapCol) {
+  const { vw, vh, ox = 0, oy = 0 } = parsed;
+  const halfN = Math.max(1, Math.round(n / 2));
+  const cols = Math.max(1, Math.round(Math.sqrt(halfN * vw / vh)));
+  const rows = Math.max(1, Math.ceil(halfN / cols));
+  const cellW = vw / cols;
+  const cellH = vh / rows;
+  const g = gap / 2;
+  const strokeAttr = gap > 0
+    ? `stroke="${gapCol}" stroke-width="${gap}"`
+    : `stroke="${fill}" stroke-width="0.5"`;
+  let paths = "", idx = 0;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x1 = +(ox + c * cellW + g).toFixed(3),       y1 = +(oy + r * cellH + g).toFixed(3);
+      const x2 = +(ox + (c + 1) * cellW - g).toFixed(3), y2 = +(oy + (r + 1) * cellH - g).toFixed(3);
+      if (x2 <= x1 || y2 <= y1) continue;
+      paths += `  <path class="mosaic-fragment" data-index="${idx++}" d="M${x1},${y1} L${x2},${y1} L${x1},${y2} Z" clip-path="url(#mosaic-clip)" fill="${fill}" ${strokeAttr}/>\n`;
+      paths += `  <path class="mosaic-fragment" data-index="${idx++}" d="M${x2},${y1} L${x2},${y2} L${x1},${y2} Z" clip-path="url(#mosaic-clip)" fill="${fill}" ${strokeAttr}/>\n`;
+    }
+  }
+  return paths;
+}
+
+// ─── Main SVG builder ────────────────────────────────────────────────────────
+function buildSVG(parsed, n, fill, gap, gapCol, usePoisson, s) {
+  const { vb, clipDefs } = parsed;
+  let paths;
+  if      (geometry === "grid")      paths = buildGridPaths(parsed, n, fill, gap, gapCol);
+  else if (geometry === "triangles") paths = buildTrianglePaths(parsed, n, fill, gap, gapCol);
+  else                               paths = buildVoronoiPaths(parsed, n, fill, gap, gapCol, usePoisson, s);
+
+  // Build clip from bare shape elements only (no <g>, no style attrs)
+  // This avoids Chrome ignoring children of a <g style="mix-blend-mode:..."> in clipPath
+  const clipContent = clipDefs.map(s => "    " + s).join("\n");
+  return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" class="mosaic-container" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <clipPath id="mosaic-clip" clipPathUnits="userSpaceOnUse">
+${clipContent}
+    </clipPath>
+  </defs>
+${paths}</svg>`;
+}
+
+// ─── GSAP snippets (param-driven) ───────────────────────────────────────────
+function animParams() {
+  return {
+    dur:  parseFloat(animDuration.value),
+    stag: parseFloat(animStagger.value),
+    from: animFrom.value,
+    ease: animEase.value,
+    xy:   parseInt(animXY.value),
+    rot:  parseInt(animRot.value),
+    dir:  animDir.value,
+  };
+}
+
+function buildAnimBlock(p) {
+  let xyLines;
+  if (p.xy === 0) {
+    xyLines = `  x: 0,\n  y: 0,`;
+  } else if (p.dir === "random") {
+    xyLines = `  x: () => gsap.utils.random(-${p.xy}, ${p.xy}),\n  y: () => gsap.utils.random(-${p.xy}, ${p.xy}),`;
+  } else if (p.dir === "left")   { xyLines = `  x: -${p.xy},\n  y: 0,`; }
+  else if (p.dir === "right")  { xyLines = `  x: ${p.xy},\n  y: 0,`; }
+  else if (p.dir === "top")    { xyLines = `  x: 0,\n  y: -${p.xy},`; }
+  else if (p.dir === "bottom") { xyLines = `  x: 0,\n  y: ${p.xy},`; }
+  const rotLine = p.rot > 0 ? `\n  rotation: () => gsap.utils.random(-${p.rot}, ${p.rot}),` : "";
+  return `${xyLines}${rotLine}
+  opacity: 0,
+  duration: ${p.dur},
+  stagger: { each: ${p.stag}, from: "${p.from}" },
+  ease: "${p.ease}"`;
+}
+
+function gsapLoadSnippet(n) {
+  const p = animParams();
+  return `// ${n} fragments — on load.
+// End state = native SVG positions → zero gap, solid shape.
+gsap.from(".mosaic-fragment", {
+${buildAnimBlock(p)}
+});`;
+}
+
+function gsapScrollSnippet(n) {
+  const p = animParams();
+  return `// ${n} fragments — scroll-triggered.
+// End state = native SVG positions → zero gap, solid shape.
+// Wrap SVG in: <div class="mosaic-container">…</div>
+gsap.registerPlugin(ScrollTrigger);
+gsap.from(".mosaic-fragment", {
+${buildAnimBlock(p)},
+  scrollTrigger: {
+    trigger: ".mosaic-container",
+    start: "top 75%",
+    toggleActions: "play none none none"
+  }
+});`;
+}
+
+function gsapHoverSnippet(n) {
+  const r  = parseInt(hoverRadiusSlider.value);
+  const s  = parseInt(hoverForceSlider.value);
+  const pe = hoverPushEaseEl.value;
+  const re = hoverReturnEaseEl.value;
+  return `// ${n} fragments — hover repulsion.
+// Wrap SVG in: <div class="mosaic-container">…</div>
+const _frags = gsap.utils.toArray(".mosaic-fragment");
+const _ctrs  = [];
+(function cache() {
+  _frags.forEach((el, i) => {
+    const rc = el.getBoundingClientRect();
+    _ctrs[i] = { el, sx: rc.left + rc.width / 2, sy: rc.top + rc.height / 2 };
+  });
+})();
+document.querySelector(".mosaic-container").addEventListener("mousemove", e => {
+  const mx = e.clientX, my = e.clientY;
+  _ctrs.forEach(({ el, sx, sy }) => {
+    const dx = sx - mx, dy = sy - my;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < ${r} && dist > 0) {
+      const t = (1 - dist / ${r}) ** 2;
+      gsap.to(el, { x: (dx/dist)*${s}*t, y: (dy/dist)*${s}*t,
+        duration: 0.2, ease: "${pe}", overwrite: "auto" });
+    } else {
+      gsap.to(el, { x: 0, y: 0, duration: 0.4, ease: "${pe}", overwrite: "auto" });
+    }
+  });
+});
+document.querySelector(".mosaic-container").addEventListener("mouseleave", () => {
+  _ctrs.forEach(({ el }) =>
+    gsap.to(el, { x: 0, y: 0, duration: 0.7, ease: "${re}", overwrite: true })
+  );
+});`;
+}
+
+// ─── Snippet mode ─────────────────────────────────────────────────────────────
+let snippetMode = "load";
+const snippetBtns = {
+  load:   document.getElementById("snippetLoadBtn"),
+  scroll: document.getElementById("snippetScrollBtn"),
+  hover:  document.getElementById("snippetHoverBtn"),
+};
+function currentSnippet() {
+  if (!lastFragCount) return null;
+  if (snippetMode === "scroll") return gsapScrollSnippet(lastFragCount);
+  if (snippetMode === "hover")  return gsapHoverSnippet(lastFragCount);
+  return gsapLoadSnippet(lastFragCount);
+}
+function updateSnippet() {
+  const s = currentSnippet();
+  if (s) snippetBox.value = s;
+}
+function setSnippetMode(mode) {
+  snippetMode = mode;
+  Object.entries(snippetBtns).forEach(([k, btn]) =>
+    btn.classList.toggle("active", k === mode)
+  );
+  updateSnippet();
+}
+
+// ─── Main generate ───────────────────────────────────────────────────────────
+function generate(newSeed = false) {
+  const raw = svgInput.value.trim();
+  if (!raw) { flash("Paste an SVG first.", "warn"); return; }
+
+  let parsed;
+  try { parsed = parseSVG(raw); }
+  catch (e) { flash(e.message, "error"); return; }
+
+  if (newSeed) seed = Math.random();
+
+  const n      = parseInt(countSlider.value);
+  const fill   = fillHex.value || fillColor.value;
+  const gap    = parseFloat(gapSize.value) || 0;
+  const gapCol = gapHex.value || gapColor.value;
+  const pois   = poissonCk.checked;
+
+  try {
+    const svg = buildSVG(parsed, n, fill, gap, gapCol, pois, seed);
+    lastSVG = svg; // store clean XML for export
+
+    // Parse as XML (not innerHTML) so clipPath works in Chrome's HTML5 context
+    const xmlDoc = new DOMParser().parseFromString(svg, "image/svg+xml");
+    const svgEl  = document.importNode(xmlDoc.querySelector("svg"), true);
+    // Remove old SVG / placeholder but keep .zoom-controls
+    Array.from(previewWrap.children).forEach(c => {
+      if (!c.classList.contains("zoom-controls")) c.remove();
+    });
+    previewWrap.appendChild(svgEl);
+    applyZoom();
+    if (hoverMode) requestAnimationFrame(cacheFragCenters); // recache after paint
+
+    const count   = previewWrap.querySelectorAll(".mosaic-fragment").length;
+    lastFragCount = count;
+    const chars   = svg.length;
+    const limit   = 50000;
+    const pct     = Math.round(chars / limit * 100);
+    const charCol = chars > limit ? "var(--red)" : chars > limit * 0.8 ? "var(--yellow)" : "var(--green)";
+    const seedPart = geometry === "voronoi" ? ` · seed ${seed.toFixed(8)}` : "";
+    metaLine.innerHTML = `${count} fragments · ${parsed.vw}×${parsed.vh} viewBox${seedPart} · <span style="color:${charCol}">${chars.toLocaleString()} chars (${pct}% of Webflow 50k limit)</span>`;
+    updateSnippet();
+    flash(`${count} fragments generated.`);
+  } catch (e) {
+    flash("Generation error: " + e.message, "error");
+  }
+}
+
+// ─── Feedback flash ──────────────────────────────────────────────────────────
+let flashTimer;
+function flash(msg, type = "ok") {
+  feedback.textContent = msg;
+  feedback.style.color = type === "error" ? "var(--red)" : type === "warn" ? "var(--yellow)" : "var(--green)";
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => { feedback.textContent = ""; }, 3000);
+}
+
+// ─── Buttons ─────────────────────────────────────────────────────────────────
+document.getElementById("generateBtn").addEventListener("click",  () => generate(false));
+document.getElementById("randomizeBtn").addEventListener("click", () => generate(true));
+
+document.getElementById("exportBtn").addEventListener("click", () => {
+  if (!lastSVG) { flash("Generate first.", "warn"); return; }
+  const blob = new Blob([lastSVG], { type: "image/svg+xml" });
+  const a = Object.assign(document.createElement("a"), {
+    href: URL.createObjectURL(blob), download: "mosaic.svg"
+  });
+  a.click();
+  flash("Exported mosaic.svg");
+});
+
+document.getElementById("copyBtn").addEventListener("click", () => {
+  if (!lastSVG) { flash("Generate first.", "warn"); return; }
+  navigator.clipboard.writeText(lastSVG)
+    .then(() => flash("SVG copied to clipboard!"))
+    .catch(() => flash("Copy failed — try Export instead.", "warn"));
+});
+
+["load", "scroll", "hover"].forEach(mode => {
+  snippetBtns[mode].addEventListener("click", () => {
+    if (!lastSVG) { flash("Generate a mosaic first.", "warn"); return; }
+    setSnippetMode(mode);
+    navigator.clipboard.writeText(currentSnippet())
+      .then(() => flash(`GSAP (${mode}) copied!`))
+      .catch(() => flash("Copy failed.", "warn"));
+  });
+});
+
+// ─── Animation preview ───────────────────────────────────────────────────────
+function playPreview() {
+  const frags = Array.from(previewWrap.querySelectorAll(".mosaic-fragment"));
+  if (!frags.length) { flash("Generate a mosaic first.", "warn"); return; }
+  const p = animParams();
+  gsap.killTweensOf(frags);
+  gsap.set(frags, { clearProps: "all" });
+  let xVal = 0, yVal = 0;
+  if (p.xy > 0) {
+    if (p.dir === "random") { xVal = () => gsap.utils.random(-p.xy, p.xy); yVal = () => gsap.utils.random(-p.xy, p.xy); }
+    else if (p.dir === "left")   { xVal = -p.xy; }
+    else if (p.dir === "right")  { xVal =  p.xy; }
+    else if (p.dir === "top")    { yVal = -p.xy; }
+    else if (p.dir === "bottom") { yVal =  p.xy; }
+  }
+  gsap.from(frags, {
+    x: xVal,
+    y: yVal,
+    rotation: p.rot > 0 ? () => gsap.utils.random(-p.rot, p.rot) : 0,
+    opacity: 0,
+    duration: p.dur,
+    stagger: { each: p.stag, from: p.from },
+    ease: p.ease,
+  });
+}
+
+function resetPreview() {
+  const frags = Array.from(previewWrap.querySelectorAll(".mosaic-fragment"));
+  gsap.killTweensOf(frags);
+  gsap.set(frags, { clearProps: "all" });
+}
+
+document.getElementById("playBtn").addEventListener("click",  playPreview);
+document.getElementById("resetBtn").addEventListener("click", resetPreview);
+
+// ─── Anim param controls ─────────────────────────────────────────────────────
+function syncAnimLabels() {
+  const dir = animDir.value;
+  durVal.textContent  = animDuration.value + "s";
+  stagVal.textContent = animStagger.value;
+  xyVal.textContent   = dir === "random" ? "±" + animXY.value : animXY.value;
+  xyLabel.textContent = dir === "random" ? "X / Y" : "Distance";
+  rotVal.textContent  = "±" + animRot.value + "°";
+}
+syncAnimLabels(); // init display from HTML default values
+[animDuration, animStagger, animXY, animRot].forEach(el => {
+  el.addEventListener("input", () => { syncAnimLabels(); updateSnippet(); });
+});
+[animFrom, animEase].forEach(el => {
+  el.addEventListener("change", updateSnippet);
+});
+animDir.addEventListener("change", () => { syncAnimLabels(); updateSnippet(); });
+
+// ─── Zoom ────────────────────────────────────────────────────────────────────
+let zoomLevel = 0.55;
+const ZOOM_STEP = 0.15;
+const ZOOM_MIN  = 0.1;
+const ZOOM_MAX  = 8;
+const zoomLabel = document.getElementById("zoomLabel");
+
+function applyZoom() {
+  const svg = previewWrap.querySelector("svg");
+  if (svg) svg.style.transform = `scale(${zoomLevel.toFixed(2)})`;
+  zoomLabel.textContent = Math.round(zoomLevel * 100) + "%";
+  if (hoverMode) setTimeout(cacheFragCenters, 100); // recache after CSS transition
+}
+document.getElementById("zoomIn").addEventListener("click", () => {
+  zoomLevel = Math.min(ZOOM_MAX, zoomLevel + ZOOM_STEP);
+  applyZoom();
+});
+document.getElementById("zoomOut").addEventListener("click", () => {
+  zoomLevel = Math.max(ZOOM_MIN, zoomLevel - ZOOM_STEP);
+  applyZoom();
+});
+document.getElementById("zoomReset").addEventListener("click", () => {
+  zoomLevel = 1;
+  applyZoom();
+});
+previewWrap.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const delta = e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
+  zoomLevel = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomLevel + delta));
+  applyZoom();
+}, { passive: false });
+
+// ─── Hover repulsion ─────────────────────────────────────────────────────────
+let hoverMode   = false;
+let fragCenters = [];   // { el, sx, sy } screen-pixel centres, cached after generate
+const hoverBtn         = document.getElementById("hoverBtn");
+const hoverParamsEl    = document.getElementById("hoverParams");
+const animGridEl       = document.querySelector(".anim-grid");
+const hoverRadiusSlider = document.getElementById("hoverRadius");
+const hoverForceSlider  = document.getElementById("hoverForce");
+const hoverPushEaseEl   = document.getElementById("hoverPushEase");
+const hoverReturnEaseEl = document.getElementById("hoverReturnEase");
+const hoverRadiusVal    = document.getElementById("hoverRadiusVal");
+const hoverForceVal     = document.getElementById("hoverForceVal");
+
+// Sync hover param labels + snippet
+function syncHoverLabels() {
+  hoverRadiusVal.textContent = hoverRadiusSlider.value + "px";
+  hoverForceVal.textContent  = hoverForceSlider.value  + "px";
+}
+[hoverRadiusSlider, hoverForceSlider].forEach(el =>
+  el.addEventListener("input", () => { syncHoverLabels(); updateSnippet(); })
+);
+[hoverPushEaseEl, hoverReturnEaseEl].forEach(el =>
+  el.addEventListener("change", updateSnippet)
+);
+syncHoverLabels();
+
+function cacheFragCenters() {
+  fragCenters = Array.from(previewWrap.querySelectorAll(".mosaic-fragment")).map(el => {
+    const r = el.getBoundingClientRect();
+    return { el, sx: r.left + r.width / 2, sy: r.top + r.height / 2 };
+  });
+}
+function hoverSpringBack(ease) {
+  const e = ease ?? hoverReturnEaseEl.value;
+  fragCenters.forEach(({ el }) =>
+    gsap.to(el, { x: 0, y: 0, duration: 0.7, ease: e, overwrite: true })
+  );
+}
+hoverBtn.addEventListener("click", () => {
+  hoverMode = !hoverMode;
+  hoverBtn.classList.toggle("active", hoverMode);
+  hoverParamsEl.classList.toggle("visible", hoverMode);
+  animGridEl.style.display = hoverMode ? "none" : "";
+  if (hoverMode) {
+    cacheFragCenters();
+  } else {
+    hoverSpringBack("power3.out");
+  }
+});
+previewWrap.addEventListener("mousemove", (e) => {
+  if (!hoverMode || !fragCenters.length) return;
+  const mx    = e.clientX, my = e.clientY;
+  const HOVER_R = parseInt(hoverRadiusSlider.value);
+  const HOVER_S = parseInt(hoverForceSlider.value);
+  const pushEase = hoverPushEaseEl.value;
+  fragCenters.forEach(({ el, sx, sy }) => {
+    const dx = sx - mx, dy = sy - my;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < HOVER_R && dist > 0) {
+      const t = (1 - dist / HOVER_R) ** 2;
+      gsap.to(el, {
+        x: (dx / dist) * HOVER_S * t,
+        y: (dy / dist) * HOVER_S * t,
+        duration: 0.2, ease: pushEase, overwrite: "auto"
+      });
+    } else {
+      gsap.to(el, { x: 0, y: 0, duration: 0.4, ease: pushEase, overwrite: "auto" });
+    }
+  });
+});
+previewWrap.addEventListener("mouseleave", () => {
+  if (!hoverMode) return;
+  hoverSpringBack();
+});
+
+// ─── Demo loader ─────────────────────────────────────────────────────────────
+document.getElementById("loadDemo").addEventListener("click", () => {
+  svgInput.value = DEMO_SVG;
+  flash("treseiscero logo loaded. Click Generate!");
+});
+
+// ─── Auto-regenerate on control change (only when preview exists) ────────────
+// ─── Geometry selector ───────────────────────────────────────────────────────
+document.querySelectorAll(".geo-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".geo-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    geometry = btn.dataset.geo;
+    const isVoronoi = geometry === "voronoi";
+    poissonRow.style.opacity = isVoronoi ? "1" : "0.35";
+    poissonRow.style.pointerEvents = isVoronoi ? "" : "none";
+    regen();
+  });
+});
+
+// ─── Auto-regenerate on control change ───────────────────────────────────────
+const regen = () => { if (previewWrap.querySelector("svg")) generate(false); };
+countSlider.addEventListener("change", regen);
+fillColor.addEventListener("change", regen);
+fillHex.addEventListener("change", regen);
+gapSize.addEventListener("change", regen);
+gapColor.addEventListener("change", regen);
+gapHex.addEventListener("change", regen);
+poissonCk.addEventListener("change", regen);
+</script>
+</body>
+</html>
