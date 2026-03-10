@@ -23,7 +23,8 @@
       background: var(--bg);
       color: var(--text);
       font-family: 'Space Mono', ui-monospace, monospace;
-      min-height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       font-size: 13px;
@@ -437,8 +438,14 @@
 
     /* ─── Responsive ──────────────────────────────────────────────────────── */
     @media (max-width: 860px) {
+      body {
+        height: auto;
+        min-height: 100dvh;
+        overflow-y: auto;
+      }
       .layout {
         grid-template-columns: 1fr;
+        min-height: unset;
       }
       .left {
         border-right: none;
@@ -449,7 +456,8 @@
         overflow: visible;
       }
       .preview-wrap {
-        min-height: 280px;
+        min-height: 260px;
+        max-height: 55vw;
       }
     }
 
@@ -464,6 +472,10 @@
       .anim-toolbar { flex-wrap: wrap; }
       .geo-group { flex-wrap: wrap; }
       textarea { height: 100px; }
+      .preview-wrap {
+        min-height: 220px;
+        max-height: 70vw;
+      }
     }
   </style>
 </head>
