@@ -580,7 +580,10 @@
           autocomplete="off" spellcheck="false">
       </div>
       <div class="field">
-        <div class="label">Font</div>
+        <div class="label" style="display:flex;align-items:center;justify-content:space-between;">
+          Font
+          <button class="upload-btn" id="loadSystemFontsBtn">+ Mac fonts</button>
+        </div>
         <select id="fontSelect">
           <option value="bebas-neue">Bebas Neue</option>
           <option value="anton">Anton</option>
@@ -1288,6 +1291,7 @@ const FONT_CSS = {
   "syne-800":          "'Syne', sans-serif",
 };
 const fontCache = {};
+let localFontMap = {}; // postscriptName → FontData
 
 function updateTextPreview() {
   const text    = document.getElementById("textInput").value || "TEXT";
@@ -1296,7 +1300,19 @@ function updateTextPreview() {
   document.getElementById("fontSizeVal").textContent = fSize;
   const inner = document.getElementById("textPreviewInner");
   inner.textContent = text;
-  inner.style.fontFamily = FONT_CSS[fontKey] || "sans-serif";
+  if (fontKey.startsWith("local:")) {
+    const fd = localFontMap[fontKey.slice(6)];
+    if (fd) {
+      inner.style.fontFamily = `"${fd.family}"`;
+      const s = fd.style.toLowerCase();
+      inner.style.fontWeight = /black|heavy|bold/.test(s) ? "bold" : "normal";
+      inner.style.fontStyle  = /italic|oblique/.test(s) ? "italic" : "normal";
+    }
+  } else {
+    inner.style.fontFamily = FONT_CSS[fontKey] || "sans-serif";
+    inner.style.fontWeight = "normal";
+    inner.style.fontStyle  = "normal";
+  }
   inner.style.fontSize = fSize + "px";
   inner.style.transform = "none";
   requestAnimationFrame(() => {
@@ -1310,6 +1326,13 @@ function updateTextPreview() {
 
 function loadOTFont(key) {
   if (fontCache[key]) return Promise.resolve(fontCache[key]);
+  if (key.startsWith("local:")) {
+    const fd = localFontMap[key.slice(6)];
+    if (!fd) return Promise.reject(new Error("Font not found: " + key.slice(6)));
+    return fd.blob()
+      .then(b => b.arrayBuffer())
+      .then(buf => { const f = window.opentype.parse(buf); fontCache[key] = f; return f; });
+  }
   return new Promise((resolve, reject) => {
     window.opentype.load(FONT_DEFS[key], (err, font) => {
       if (err) reject(new Error("Font load failed: " + err));
@@ -1317,6 +1340,35 @@ function loadOTFont(key) {
     });
   });
 }
+
+async function loadLocalFonts() {
+  if (!("queryLocalFonts" in window)) {
+    flash("Usa Chrome o Edge para acceder a las fuentes del sistema.", "warn"); return;
+  }
+  flash("Cargando fuentes…");
+  try {
+    const fonts = await window.queryLocalFonts();
+    localFontMap = {};
+    for (const f of fonts) localFontMap[f.postscriptName] = f;
+    const select = document.getElementById("fontSelect");
+    // Remove previously loaded system optgroup
+    select.querySelectorAll("optgroup[data-local]").forEach(g => g.remove());
+    const group = document.createElement("optgroup");
+    group.label = "── Sistema ──";
+    group.dataset.local = "1";
+    [...fonts].sort((a, b) => a.fullName.localeCompare(b.fullName)).forEach(f => {
+      const o = document.createElement("option");
+      o.value = "local:" + f.postscriptName;
+      o.textContent = f.fullName;
+      group.appendChild(o);
+    });
+    select.appendChild(group);
+    flash(`${fonts.length} fuentes del sistema cargadas.`);
+  } catch(e) {
+    flash("Permiso denegado: " + e.message, "error");
+  }
+}
+document.getElementById("loadSystemFontsBtn").addEventListener("click", loadLocalFonts);
 
 async function buildTextSVG() {
   const text    = document.getElementById("textInput").value.trim() || "TEXT";
