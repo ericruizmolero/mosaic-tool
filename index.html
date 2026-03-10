@@ -428,11 +428,19 @@
       <button class="demo-link" id="loadDemo">↳ Load treseiscero logo as demo</button>
     </div>
 
-    <div class="field">
+    <div class="field" id="fragmentsRow">
       <div class="label">Fragments</div>
       <div class="row">
         <input type="range" id="countSlider" min="10" max="200" value="40">
         <span class="count-val" id="countDisplay">40</span>
+      </div>
+    </div>
+
+    <div class="field" id="pixelSizeRow" style="display:none">
+      <div class="label">Pixel size</div>
+      <div class="row">
+        <input type="range" id="pixelSizeSlider" min="1" max="32" step="1" value="8">
+        <span class="count-val" id="pixelSizeDisplay">8px</span>
       </div>
     </div>
 
@@ -459,6 +467,7 @@
         <button class="geo-btn active" data-geo="voronoi">Voronoi</button>
         <button class="geo-btn" data-geo="grid">Grid</button>
         <button class="geo-btn" data-geo="triangles">Triangles</button>
+        <button class="geo-btn" data-geo="pixels">Pixels</button>
       </div>
     </div>
 
@@ -921,11 +930,36 @@ function buildTrianglePaths(parsed, n, fill, gap, gapCol) {
   return paths;
 }
 
+// ─── Pixel path builder ───────────────────────────────────────────────────────
+function buildPixelPaths(parsed, ps, fill, gap, gapCol) {
+  const { vw, vh, ox = 0, oy = 0 } = parsed;
+  const g = gap / 2;
+  const strokeAttr = gap > 0
+    ? `stroke="${gapCol}" stroke-width="${gap}"`
+    : `stroke="${fill}" stroke-width="0.5"`;
+  const cols = Math.ceil(vw / ps);
+  const rows = Math.ceil(vh / ps);
+  let paths = "", idx = 0;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x1 = +(ox + c * ps + g).toFixed(3);
+      const y1 = +(oy + r * ps + g).toFixed(3);
+      const x2 = +(Math.min(ox + (c + 1) * ps, ox + vw) - g).toFixed(3);
+      const y2 = +(Math.min(oy + (r + 1) * ps, oy + vh) - g).toFixed(3);
+      if (x2 <= x1 || y2 <= y1) continue;
+      paths += `  <path class="mosaic-fragment" data-index="${idx++}" d="M${x1},${y1} L${x2},${y1} L${x2},${y2} L${x1},${y2} Z" clip-path="url(#mosaic-clip)" fill="${fill}" ${strokeAttr}/>\n`;
+    }
+  }
+  return paths;
+}
+
 // ─── Main SVG builder ────────────────────────────────────────────────────────
 function buildSVG(parsed, n, fill, gap, gapCol, usePoisson, s) {
   const { vb, clipDefs } = parsed;
+  const ps = parseInt(document.getElementById("pixelSizeSlider").value);
   let paths;
-  if      (geometry === "grid")      paths = buildGridPaths(parsed, n, fill, gap, gapCol);
+  if      (geometry === "pixels")    paths = buildPixelPaths(parsed, ps, fill, gap, gapCol);
+  else if (geometry === "grid")      paths = buildGridPaths(parsed, n, fill, gap, gapCol);
   else if (geometry === "triangles") paths = buildTrianglePaths(parsed, n, fill, gap, gapCol);
   else                               paths = buildVoronoiPaths(parsed, n, fill, gap, gapCol, usePoisson, s);
 
@@ -1313,14 +1347,26 @@ document.getElementById("loadDemo").addEventListener("click", () => {
 
 // ─── Auto-regenerate on control change (only when preview exists) ────────────
 // ─── Geometry selector ───────────────────────────────────────────────────────
+const fragmentsRow   = document.getElementById("fragmentsRow");
+const pixelSizeRow   = document.getElementById("pixelSizeRow");
+const pixelSizeSlider = document.getElementById("pixelSizeSlider");
+const pixelSizeDisp  = document.getElementById("pixelSizeDisplay");
+
+pixelSizeSlider.addEventListener("input", () => {
+  pixelSizeDisp.textContent = pixelSizeSlider.value + "px";
+});
+
 document.querySelectorAll(".geo-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".geo-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     geometry = btn.dataset.geo;
     const isVoronoi = geometry === "voronoi";
-    poissonRow.style.opacity = isVoronoi ? "1" : "0.35";
+    const isPixels  = geometry === "pixels";
+    poissonRow.style.opacity      = isVoronoi ? "1" : "0.35";
     poissonRow.style.pointerEvents = isVoronoi ? "" : "none";
+    fragmentsRow.style.display    = isPixels ? "none" : "";
+    pixelSizeRow.style.display    = isPixels ? "" : "none";
     regen();
   });
 });
@@ -1334,6 +1380,7 @@ gapSize.addEventListener("change", regen);
 gapColor.addEventListener("change", regen);
 gapHex.addEventListener("change", regen);
 poissonCk.addEventListener("change", regen);
+pixelSizeSlider.addEventListener("change", regen);
 </script>
 </body>
 </html>
