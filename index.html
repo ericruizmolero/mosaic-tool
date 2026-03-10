@@ -407,13 +407,13 @@
 
     /* ─── Upload button ───────────────────────────────────────────────────── */
     .upload-btn {
-      font-size: 9px;
-      letter-spacing: 0.08em;
+      font-size: 10px;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--muted);
+      color: rgba(249,249,241,0.65);
       cursor: pointer;
-      padding: 3px 7px;
-      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border: 1px solid rgba(249,249,241,0.2);
       font-family: monospace;
       transition: color 0.12s, border-color 0.12s;
       white-space: nowrap;
@@ -960,9 +960,10 @@ function parseSVG(raw) {
   if (!svgEl) throw new Error("No <svg> element found");
 
   let vb = svgEl.getAttribute("viewBox");
-  let vw, vh;
+  let vw, vh, vbOx = 0, vbOy = 0;
   if (vb) {
     const p = vb.trim().split(/[\s,]+/).map(Number);
+    vbOx = p[0] || 0; vbOy = p[1] || 0;
     vw = p[2]; vh = p[3];
   } else {
     vw = parseFloat(svgEl.getAttribute("width")  || "100");
@@ -976,7 +977,8 @@ function parseSVG(raw) {
   // Auto-detect crop bounds from export metadata:
   // 1. <defs><clipPath><rect transform="translate(ox oy)"> — Figma clipPath style
   // 2. <mask x y width height> — Figma/Sketch mask style
-  let ox = 0, oy = 0, cropFound = false;
+  // Seed ox/oy from viewBox origin so text SVGs with negative coords work correctly
+  let ox = vbOx, oy = vbOy, cropFound = false;
   for (const r of svgEl.querySelectorAll("defs clipPath rect")) {
     const cw = parseFloat(r.getAttribute("width")  || "0");
     const ch = parseFloat(r.getAttribute("height") || "0");
