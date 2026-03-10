@@ -7,6 +7,7 @@
   <link rel="shortcut icon" type="image/x-icon" href="https://cdn.prod.website-files.com/66a9046379e1605f2cb45ce5/66e000a12e72207f710792c8_favicon_32.png">
   <link rel="apple-touch-icon" href="https://cdn.prod.website-files.com/66a9046379e1605f2cb45ce5/66e000d70c4a5737034690fb_isotipo_round-256.png">
   <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
   <style>
     :root {
       --bg: #022D42;
@@ -436,6 +437,42 @@
     }
     .demo-link:hover { color: var(--text); text-decoration-color: var(--text); }
 
+    /* ─── Mode toggle ─────────────────────────────────────────────────────────── */
+    .mode-toggle {
+      display: flex;
+      border: 1px solid var(--border);
+      width: fit-content;
+    }
+    .mode-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'Space Mono', ui-monospace, monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      cursor: pointer;
+      transition: all 0.12s;
+      white-space: nowrap;
+    }
+    .mode-btn.active { background: var(--surface); color: var(--text); }
+    .mode-btn:hover:not(.active) { color: var(--text); }
+
+    /* ─── Text mode panel ────────────────────────────────────────────────────── */
+    .text-input-large {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Space Mono', ui-monospace, monospace;
+      font-size: 15px;
+      padding: 10px;
+      outline: none;
+      transition: border-color 0.12s;
+    }
+    .text-input-large:focus { border-color: rgba(249,249,241,0.6); }
+
     /* ─── Responsive ──────────────────────────────────────────────────────── */
     @media (max-width: 860px) {
       body {
@@ -491,7 +528,14 @@
   <!-- ══════════════════════════════ LEFT PANEL ══════════════════════════════ -->
   <div class="left">
 
-    <div class="field">
+    <!-- Mode toggle -->
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="modeSvgBtn">SVG Code</button>
+      <button class="mode-btn" id="modeTextBtn">Text</button>
+    </div>
+
+    <!-- SVG mode panel -->
+    <div id="svgModePanel" class="field">
       <div class="label" style="display:flex;align-items:center;justify-content:space-between;">
         SVG Input
         <label class="upload-btn" id="uploadLabel">
@@ -502,6 +546,32 @@
       <textarea id="svgInput" spellcheck="false"
         placeholder="Paste SVG code here…&#10;&#10;Or drag & drop an .svg file."></textarea>
       <button class="demo-link" id="loadDemo">↳ Load treseiscero logo as demo</button>
+    </div>
+
+    <!-- Text mode panel -->
+    <div id="textModePanel" style="display:none;flex-direction:column;gap:10px;">
+      <div class="field">
+        <div class="label">Heading text</div>
+        <input type="text" id="textInput" class="text-input-large"
+          value="treseiscero" placeholder="Type your heading…"
+          autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <div class="label">Font</div>
+        <select id="fontSelect">
+          <option value="bebas-neue">Bebas Neue</option>
+          <option value="anton">Anton</option>
+          <option value="playfair-700">Playfair Display Bold</option>
+          <option value="space-grotesk-700">Space Grotesk Bold</option>
+          <option value="syne-800">Syne ExtraBold</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="label" style="display:flex;justify-content:space-between;">
+          Size <span id="fontSizeVal">120</span>px
+        </div>
+        <input type="range" id="fontSizeSlider" min="20" max="400" value="120">
+      </div>
     </div>
 
     <div class="field" id="fragmentsRow">
@@ -1168,10 +1238,73 @@ function setSnippetMode(mode) {
   updateSnippet();
 }
 
+// ─── Text mode ───────────────────────────────────────────────────────────────
+let inputMode = "svg";
+
+const FONT_DEFS = {
+  "bebas-neue":        "https://cdn.jsdelivr.net/npm/@fontsource/bebas-neue/files/bebas-neue-latin-400-normal.woff",
+  "anton":             "https://cdn.jsdelivr.net/npm/@fontsource/anton/files/anton-latin-400-normal.woff",
+  "playfair-700":      "https://cdn.jsdelivr.net/npm/@fontsource/playfair-display/files/playfair-display-latin-700-normal.woff",
+  "space-grotesk-700": "https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff",
+  "syne-800":          "https://cdn.jsdelivr.net/npm/@fontsource/syne/files/syne-latin-800-normal.woff",
+};
+const fontCache = {};
+
+function loadOTFont(key) {
+  if (fontCache[key]) return Promise.resolve(fontCache[key]);
+  return new Promise((resolve, reject) => {
+    window.opentype.load(FONT_DEFS[key], (err, font) => {
+      if (err) reject(new Error("Font load failed: " + err));
+      else { fontCache[key] = font; resolve(font); }
+    });
+  });
+}
+
+async function buildTextSVG() {
+  const text    = document.getElementById("textInput").value.trim() || "TEXT";
+  const fontKey = document.getElementById("fontSelect").value;
+  const fSize   = parseInt(document.getElementById("fontSizeSlider").value);
+  flash("Loading font…");
+  const font = await loadOTFont(fontKey);
+  const path = font.getPath(text, 0, fSize, fSize);
+  const bb   = path.getBoundingBox();
+  if (!bb || (bb.x2 - bb.x1) < 1) throw new Error("Could not measure text — try different text or font");
+  const pad = fSize * 0.04;
+  const vx = (bb.x1 - pad).toFixed(2), vy = (bb.y1 - pad).toFixed(2);
+  const vw = (bb.x2 - bb.x1 + pad * 2).toFixed(2);
+  const vh = (bb.y2 - bb.y1 + pad * 2).toFixed(2);
+  return `<svg viewBox="${vx} ${vy} ${vw} ${vh}" xmlns="http://www.w3.org/2000/svg"><path d="${path.toPathData(3)}"/></svg>`;
+}
+
+// Mode toggle
+document.getElementById("modeSvgBtn").addEventListener("click", () => {
+  inputMode = "svg";
+  document.getElementById("modeSvgBtn").classList.add("active");
+  document.getElementById("modeTextBtn").classList.remove("active");
+  document.getElementById("svgModePanel").style.display = "";
+  document.getElementById("textModePanel").style.display = "none";
+});
+document.getElementById("modeTextBtn").addEventListener("click", () => {
+  inputMode = "text";
+  document.getElementById("modeTextBtn").classList.add("active");
+  document.getElementById("modeSvgBtn").classList.remove("active");
+  document.getElementById("svgModePanel").style.display = "none";
+  document.getElementById("textModePanel").style.display = "flex";
+});
+document.getElementById("fontSizeSlider").addEventListener("input", e => {
+  document.getElementById("fontSizeVal").textContent = e.target.value;
+});
+
 // ─── Main generate ───────────────────────────────────────────────────────────
-function generate(newSeed = false) {
-  const raw = svgInput.value.trim();
-  if (!raw) { flash("Paste an SVG first.", "warn"); return; }
+async function generate(newSeed = false) {
+  let raw;
+  if (inputMode === "text") {
+    try { raw = await buildTextSVG(); }
+    catch (e) { flash(e.message, "error"); return; }
+  } else {
+    raw = svgInput.value.trim();
+    if (!raw) { flash("Paste an SVG first.", "warn"); return; }
+  }
 
   let parsed;
   try { parsed = parseSVG(raw); }
