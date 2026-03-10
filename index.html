@@ -466,7 +466,7 @@
     .text-preview {
       width: 100%;
       height: 68px;
-      overflow: hidden;
+      overflow: visible;
       background: var(--surface);
       border: 1px solid var(--border);
       display: flex;
@@ -480,7 +480,9 @@
       color: var(--text);
       white-space: nowrap;
       pointer-events: none;
+      text-transform: none;
     }
+    .text-input-large { text-transform: none; }
     .text-input-large {
       width: 100%;
       background: var(--surface);
@@ -1325,7 +1327,7 @@ async function buildTextSVG() {
   const path = font.getPath(text, 0, fSize, fSize);
   const bb   = path.getBoundingBox();
   if (!bb || (bb.x2 - bb.x1) < 1) throw new Error("Could not measure text — try different text or font");
-  const pad = fSize * 0.04;
+  const pad = fSize * 0.1;
   const vx = (bb.x1 - pad).toFixed(2), vy = (bb.y1 - pad).toFixed(2);
   const vw = (bb.x2 - bb.x1 + pad * 2).toFixed(2);
   const vh = (bb.y2 - bb.y1 + pad * 2).toFixed(2);
