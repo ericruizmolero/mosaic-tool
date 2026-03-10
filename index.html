@@ -6,6 +6,9 @@
   <title>Mosaic Tile — treseiscero tools</title>
   <link rel="shortcut icon" type="image/x-icon" href="https://cdn.prod.website-files.com/66a9046379e1605f2cb45ce5/66e000a12e72207f710792c8_favicon_32.png">
   <link rel="apple-touch-icon" href="https://cdn.prod.website-files.com/66a9046379e1605f2cb45ce5/66e000d70c4a5737034690fb_isotipo_round-256.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Anton&family=Oswald:wght@700&family=Playfair+Display:wght@700&family=Space+Grotesk:wght@700&family=Syne:wght@800&family=Montserrat:wght@900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
   <style>
@@ -460,6 +463,24 @@
     .mode-btn:hover:not(.active) { color: var(--text); }
 
     /* ─── Text mode panel ────────────────────────────────────────────────────── */
+    .text-preview {
+      width: 100%;
+      height: 68px;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+    }
+    .text-preview-inner {
+      display: inline-block;
+      transform-origin: left center;
+      line-height: 1;
+      color: var(--text);
+      white-space: nowrap;
+      pointer-events: none;
+    }
     .text-input-large {
       width: 100%;
       background: var(--surface);
@@ -561,6 +582,8 @@
         <select id="fontSelect">
           <option value="bebas-neue">Bebas Neue</option>
           <option value="anton">Anton</option>
+          <option value="oswald-700">Oswald Bold</option>
+          <option value="montserrat-900">Montserrat Black</option>
           <option value="playfair-700">Playfair Display Bold</option>
           <option value="space-grotesk-700">Space Grotesk Bold</option>
           <option value="syne-800">Syne ExtraBold</option>
@@ -571,6 +594,9 @@
           Size <span id="fontSizeVal">120</span>px
         </div>
         <input type="range" id="fontSizeSlider" min="20" max="400" value="120">
+      </div>
+      <div class="text-preview" id="textPreview">
+        <span class="text-preview-inner" id="textPreviewInner">treseiscero</span>
       </div>
     </div>
 
@@ -1244,11 +1270,41 @@ let inputMode = "svg";
 const FONT_DEFS = {
   "bebas-neue":        "https://cdn.jsdelivr.net/npm/@fontsource/bebas-neue/files/bebas-neue-latin-400-normal.woff",
   "anton":             "https://cdn.jsdelivr.net/npm/@fontsource/anton/files/anton-latin-400-normal.woff",
+  "oswald-700":        "https://cdn.jsdelivr.net/npm/@fontsource/oswald/files/oswald-latin-700-normal.woff",
+  "montserrat-900":    "https://cdn.jsdelivr.net/npm/@fontsource/montserrat/files/montserrat-latin-900-normal.woff",
   "playfair-700":      "https://cdn.jsdelivr.net/npm/@fontsource/playfair-display/files/playfair-display-latin-700-normal.woff",
   "space-grotesk-700": "https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff",
   "syne-800":          "https://cdn.jsdelivr.net/npm/@fontsource/syne/files/syne-latin-800-normal.woff",
 };
+const FONT_CSS = {
+  "bebas-neue":        "'Bebas Neue', sans-serif",
+  "anton":             "'Anton', sans-serif",
+  "oswald-700":        "'Oswald', sans-serif",
+  "montserrat-900":    "'Montserrat', sans-serif",
+  "playfair-700":      "'Playfair Display', serif",
+  "space-grotesk-700": "'Space Grotesk', sans-serif",
+  "syne-800":          "'Syne', sans-serif",
+};
 const fontCache = {};
+
+function updateTextPreview() {
+  const text    = document.getElementById("textInput").value || "TEXT";
+  const fontKey = document.getElementById("fontSelect").value;
+  const fSize   = parseInt(document.getElementById("fontSizeSlider").value);
+  document.getElementById("fontSizeVal").textContent = fSize;
+  const inner = document.getElementById("textPreviewInner");
+  inner.textContent = text;
+  inner.style.fontFamily = FONT_CSS[fontKey] || "sans-serif";
+  inner.style.fontSize = fSize + "px";
+  inner.style.transform = "none";
+  requestAnimationFrame(() => {
+    const wrap = document.getElementById("textPreview");
+    const avW  = wrap.clientWidth - 24;
+    const avH  = wrap.clientHeight - 8;
+    const sc   = Math.min(1, avW / inner.scrollWidth, avH / inner.offsetHeight);
+    inner.style.transform = `scale(${sc.toFixed(4)})`;
+  });
+}
 
 function loadOTFont(key) {
   if (fontCache[key]) return Promise.resolve(fontCache[key]);
@@ -1291,9 +1347,9 @@ document.getElementById("modeTextBtn").addEventListener("click", () => {
   document.getElementById("svgModePanel").style.display = "none";
   document.getElementById("textModePanel").style.display = "flex";
 });
-document.getElementById("fontSizeSlider").addEventListener("input", e => {
-  document.getElementById("fontSizeVal").textContent = e.target.value;
-});
+document.getElementById("fontSizeSlider").addEventListener("input", updateTextPreview);
+document.getElementById("textInput").addEventListener("input", updateTextPreview);
+document.getElementById("fontSelect").addEventListener("change", updateTextPreview);
 
 // ─── Main generate ───────────────────────────────────────────────────────────
 async function generate(newSeed = false) {
